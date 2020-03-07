@@ -39,11 +39,11 @@ export default {
       loginFormRules: {
         username: [
           { required: true, message: '请输入用户名', trigger: 'blur' },
-          { min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur' }
+          { min: 5, max: 12, message: '用户名长度在5~12个字符之间', trigger: 'blur' }
         ],
         password: [
           { required: true, message: '请输入密码', trigger: 'blur' },
-          { min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur' }
+          { min: 6, max: 16, message: '密码长度在6~16个字符之间', trigger: 'blur' }
         ]
       }
     }

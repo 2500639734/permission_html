@@ -18,11 +18,14 @@ function getCookie (cookieName) {
   if (cookies === undefined || cookies == null || cookies === '') {
     return null
   }
-  const token = cookies.forEach(cookieKV => {
+
+  let token = null
+  cookies.forEach(cookieKV => {
     const cookieKey = cookieKV.split('=')[0]
     const cookieValue = cookieKV.split('=')[1]
     if (cookieKey === loginTokenKey) {
-      return cookieValue
+      token = cookieValue
+      return false
     }
   })
   return token
