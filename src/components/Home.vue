@@ -5,6 +5,7 @@
         <div>
           <span>权限系统</span>
         </div>
+        <p>欢迎回来,{{casUserInfo.sysUserInfo.name}}</p>
         <el-button type="info" size="small" @click="logout">退出</el-button>
       </el-header>
       <!-- 页面主体区域 -->
@@ -47,7 +48,12 @@ export default {
   data () {
     return {
       // 当前登录用户信息
-      casUserInfo: '',
+      casUserInfo: {
+        sysUserInfo: {
+          // 给定name初始值,避免渲染时数据还未加载抛出错误
+          name: ''
+        }
+      },
       // 左侧导航菜单是否收缩,默认为否
       isShrink: false,
       // 收缩图标
@@ -73,7 +79,7 @@ export default {
     const result = await this.getCurrentCasUserInfo()
     this.casUserInfo = result.data
 
-    // 构建动态面包屑数据格式
+    // 构建动态面包屑数据格式,重新渲染时先清空菜单
     this.breadcrumbList = []
     this.buildBreadcrumb(this.casUserInfo.sysMenuTreeList)
   },

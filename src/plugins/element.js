@@ -24,7 +24,8 @@ import {
   Pagination,
   DatePicker,
   Dialog,
-  MessageBox
+  MessageBox,
+  Tag
 } from 'element-ui'
 
 Vue.use(Button)
@@ -50,5 +51,6 @@ Vue.use(Tooltip)
 Vue.use(Pagination)
 Vue.use(DatePicker)
 Vue.use(Dialog)
+Vue.use(Tag)
 Vue.prototype.$message = Message
 Vue.prototype.$confirm = MessageBox.confirm
