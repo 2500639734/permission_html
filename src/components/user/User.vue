@@ -1,21 +1,158 @@
 <template>
-  <el-menu>
-    <!-- 卡片视图区域 -->
-    <el-card>
-      <!-- 搜索与添加区域 -->
+  <!-- 卡片视图区域 -->
+  <el-card>
+    <!-- 搜索与添加区域 -->
+    <el-row :gutter="20">
+      <!-- 用户名/用户名称/用户编码查询 -->
+      <el-col :span="4">
+        <div>
+          <el-input placeholder="输入用户名/名称/编码" v-model="queryInfo.search" @keyup.native.enter="selectSysUserList" clearable @clear="selectSysUserList">
+            <el-button slot="append" icon="el-icon-search" @click="selectSysUserList"></el-button>
+          </el-input>
+        </div>
+      </el-col>
+      <!-- 日期查询选择 -->
+      <el-col :span="5.5">
+        <el-date-picker
+            v-model="createDateRange"
+            type="daterange"
+            align="left"
+            unlink-panels
+            range-separator="至"
+            start-placeholder="创建日期开始"
+            end-placeholder="创建日期结束"
+            :editable="false"
+            value-format="yyyy-MM-dd"
+            @change="searchSysUserListByDate">
+          </el-date-picker>
+      </el-col>
+      <!-- 添加用户按钮 -->
+      <el-col :span="2">
+        <el-tooltip effect="dark" content="添加用户" placement="top" :enterable="false">
+            <el-button type="primary" icon="el-icon-add-location" @click="addUser"></el-button>
+        </el-tooltip>
+      </el-col>
+    </el-row>
+
+    <!-- 用户列表区域 -->
+    <el-table :data="userList" style="width: 100%" border>
+      <el-table-column type="index" align='center' label="#"></el-table-column>
+      <el-table-column prop="name" align='center' label="姓名"></el-table-column>
+      <el-table-column prop="code" align='center' label="编码" show-overflow-tooltip></el-table-column>
+      <el-table-column prop="username" align='center' label="用户名"></el-table-column>
+      <el-table-column prop="createUserName" align='center' label="创建人"></el-table-column>
+      <el-table-column align='center' label="创建时间">
+        <template slot-scope="scope">
+          <i class="el-icon-time"></i>
+          <span style="margin-left: 10px">{{ scope.row.createTime }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column align='center' prop="updateUserName" label="更新人"></el-table-column>
+      <el-table-column align='center' label="更新时间">
+        <template slot-scope="scope">
+          <i class="el-icon-time"></i>
+          <span style="margin-left: 10px">{{ scope.row.updateTime }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column align='center' label="操作">
+        <template slot-scope="scope">
+          <!-- 修改用户按钮 -->
+          <el-button type="primary" class="el-icon-edit" size="mini" @click="updateUser(scope.row)"></el-button>
+          <!-- 授权角色按钮 -->
+          <el-tooltip effect="dark" content="授权角色" placement="top" :enterable="false">
+            <el-button type="warning" size="mini" icon="el-icon-s-tools" @click="authorizationRole(scope.row.id)"></el-button>
+          </el-tooltip>
+          <!-- 删除用户按钮 -->
+          <el-button type="danger" icon="el-icon-delete" size="mini" @click="deleteUser(scope.row.id)"></el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <!-- 分页区域 -->
+    <el-pagination
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="queryInfo.pageStart"
+      :page-sizes="[15, 30, 50, 100]"
+      :page-size="queryInfo.pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total">
+    </el-pagination>
+
+    <!-- 添加用户对话框 -->
+    <el-dialog
+      title="添加用户"
+      :visible.sync="showAddUserDialog"
+      :close-on-click-modal="false"
+      @close="addUserClose"
+      width="20%">
+      <!-- 内容主体区域 -->
+      <el-form label-position="left" :model="addUserForm" :rules="addUserFormRules" ref="addUserFormRef" label-width="100px">
+        <el-form-item label="用户姓名" prop="name">
+          <el-input v-model="addUserForm.name"></el-input>
+        </el-form-item>
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="addUserForm.username"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="addUserForm.password" show-password @keyup.native.enter="addUserConfirm"></el-input>
+        </el-form-item>
+      </el-form>
+      <!-- 按钮区域 -->
+      <span slot="footer" class="dialog-footer">
+        <el-button icon="el-icon-error" size="small" @click="showAddUserDialog = false">取 消</el-button>
+        <el-button icon="el-icon-refresh-left" size="small" @click="resetAddUserFrom">重 置</el-button>
+        <el-button type="primary" :loading="showAddUserConfirmLoading" icon="el-icon-success" size="small" @click="addUserConfirm">确 定</el-button>
+      </span>
+    </el-dialog>
+
+    <!-- 修改用户对话框 -->
+    <el-dialog
+      title="修改用户"
+      :visible.sync="showUpdateUserDialog"
+      :close-on-click-modal="false"
+      @close="updateUserClose"
+      width="20%">
+      <!-- 内容主体区域 -->
+      <el-form label-position="right" :model="updateUserForm" :rules="updateUserFormRules" ref="updateUserFormRef" label-width="100px">
+        <el-form-item label="用户姓名" prop="name">
+          <el-input v-model="updateUserForm.name" @keyup.native.enter="updateUserConfirm"></el-input>
+        </el-form-item>
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="updateUserForm.username" :disabled="true"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="updateUserForm.password" show-password :disabled="true"></el-input>
+        </el-form-item>
+      </el-form>
+      <!-- 按钮区域 -->
+      <span slot="footer" class="dialog-footer">
+        <el-button icon="el-icon-error" size="small" @click="showUpdateUserDialog = false">取 消</el-button>
+        <el-button type="primary" :loading="showUpdateUserConfirmLoading" icon="el-icon-success" size="small" @click="updateUserConfirm">确 定</el-button>
+      </span>
+    </el-dialog>
+
+    <!-- 授权用户对话框 -->
+    <el-dialog
+      title="授权角色"
+      :visible.sync="showAuthorizationRoleDialog"
+      :close-on-click-modal="false"
+      @close="authorizationRoleClose"
+      width="90%">
+      <!-- 内容主体区域 -->
+      <!-- 搜索角色区域 -->
       <el-row :gutter="20">
-        <!-- 用户名/用户名称/用户编码查询 -->
+        <!-- 角色名/角色名称/角色编码查询 -->
         <el-col :span="4">
           <div>
-            <el-input placeholder="输入用户名/名称/编码" v-model="queryInfo.search" @keyup.native.enter="selectSysUserList" clearable @clear="selectSysUserList">
-              <el-button slot="append" icon="el-icon-search" @click="selectSysUserList"></el-button>
+            <el-input placeholder="输入角色名称/编码" v-model="queryRoleInfo.search" @keyup.native.enter="selectSysRoleList" clearable @clear="selectSysRoleList">
+              <el-button slot="append" icon="el-icon-search" @click="selectSysRoleList"></el-button>
             </el-input>
           </div>
         </el-col>
         <!-- 日期查询选择 -->
         <el-col :span="5.5">
           <el-date-picker
-              v-model="createDateRange"
+              v-model="roleCreateDateRange"
               type="daterange"
               align="left"
               unlink-panels
@@ -24,23 +161,22 @@
               end-placeholder="创建日期结束"
               :editable="false"
               value-format="yyyy-MM-dd"
-              @change="searchSysUserListByDate">
+              @change="searchSysRoleListByDate">
             </el-date-picker>
         </el-col>
-        <!-- 添加用户按钮 -->
-        <el-col :span="2">
-          <el-tooltip effect="dark" content="添加用户" placement="top" :enterable="false">
-              <el-button type="primary" icon="el-icon-add-location" @click="addUser"></el-button>
-          </el-tooltip>
-        </el-col>
       </el-row>
-
-      <!-- 用户列表区域 -->
-      <el-table :data="userList" style="width: 100%" border>
-        <el-table-column type="index" align='center' label="#"></el-table-column>
-        <el-table-column prop="name" align='center' label="姓名"></el-table-column>
-        <el-table-column prop="code" align='center' label="编码" show-overflow-tooltip></el-table-column>
-        <el-table-column prop="username" align='center' label="用户名"></el-table-column>
+      <!-- 角色列表区域 -->
+      <el-table ref="multipleTable" :data="authorizationRoleList" style="width: 100%" border @selection-change="handleRoleSelectionChange" >
+        <el-table-column type="selection"></el-table-column>
+        <el-table-column type="index" label="#"></el-table-column>
+        <el-table-column prop="name" label="角色名称" align='center'></el-table-column>
+        <el-table-column prop="code" label="角色编码" align='center' show-overflow-tooltip></el-table-column>
+        <el-table-column label="是否授权" width="100" align='center'>
+          <template slot-scope="scope">
+            <el-tag v-if="scope.row.checked === 10" effect="dark" type="success">已授权</el-tag>
+            <el-tag v-else effect="dark" type="danger">未授权</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="createUserName" align='center' label="创建人"></el-table-column>
         <el-table-column align='center' label="创建时间">
           <template slot-scope="scope">
@@ -48,171 +184,32 @@
             <span style="margin-left: 10px">{{ scope.row.createTime }}</span>
           </template>
         </el-table-column>
-        <el-table-column align='center' prop="updateUserName" label="更新人"></el-table-column>
+        <el-table-column prop="updateUserName" align='center' label="更新人"></el-table-column>
         <el-table-column align='center' label="更新时间">
           <template slot-scope="scope">
             <i class="el-icon-time"></i>
             <span style="margin-left: 10px">{{ scope.row.updateTime }}</span>
           </template>
         </el-table-column>
-        <el-table-column align='center' label="操作">
-          <template slot-scope="scope">
-            <!-- 修改用户按钮 -->
-            <el-button type="primary" class="el-icon-edit" size="mini" @click="updateUser(scope.row)"></el-button>
-            <!-- 授权角色按钮 -->
-            <el-tooltip effect="dark" content="授权角色" placement="top" :enterable="false">
-              <el-button type="warning" size="mini" icon="el-icon-s-tools" @click="authorizationRole(scope.row.id)"></el-button>
-            </el-tooltip>
-            <!-- 删除用户按钮 -->
-            <el-button type="danger" icon="el-icon-delete" size="mini" @click="deleteUser(scope.row.id)"></el-button>
-          </template>
-        </el-table-column>
       </el-table>
-
       <!-- 分页区域 -->
       <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="queryInfo.pageStart"
+        @size-change="handleRoleListSizeChange"
+        @current-change="handleRoleListCurrentChange"
+        :current-page="queryRoleInfo.pageStart"
         :page-sizes="[15, 30, 50, 100]"
-        :page-size="queryInfo.pageSize"
+        :page-size="queryRoleInfo.pageSize"
         layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
+        :total="authorizationRoleTotal">
       </el-pagination>
-
-      <!-- 添加用户对话框 -->
-      <el-dialog
-        title="添加用户"
-        :visible.sync="showAddUserDialog"
-        :close-on-click-modal="false"
-        @close="addUserClose"
-        width="20%">
-        <!-- 内容主体区域 -->
-        <el-form label-position="left" :model="addUserForm" :rules="addUserFormRules" ref="addUserFormRef" label-width="100px">
-          <el-form-item label="用户姓名" prop="name">
-            <el-input v-model="addUserForm.name"></el-input>
-          </el-form-item>
-          <el-form-item label="用户名" prop="username">
-            <el-input v-model="addUserForm.username"></el-input>
-          </el-form-item>
-          <el-form-item label="密码" prop="password">
-            <el-input v-model="addUserForm.password" show-password @keyup.native.enter="addUserConfirm"></el-input>
-          </el-form-item>
-        </el-form>
-        <!-- 按钮区域 -->
-        <span slot="footer" class="dialog-footer">
-          <el-button icon="el-icon-error" size="small" @click="showAddUserDialog = false">取 消</el-button>
-          <el-button icon="el-icon-refresh-left" size="small" @click="resetAddUserFrom">重 置</el-button>
-          <el-button type="primary" :loading="showAddUserConfirmLoading" icon="el-icon-success" size="small" @click="addUserConfirm">确 定</el-button>
-        </span>
-      </el-dialog>
-
-      <!-- 修改用户对话框 -->
-      <el-dialog
-        title="修改用户"
-        :visible.sync="showUpdateUserDialog"
-        :close-on-click-modal="false"
-        @close="updateUserClose"
-        width="20%">
-        <!-- 内容主体区域 -->
-        <el-form label-position="right" :model="updateUserForm" :rules="updateUserFormRules" ref="updateUserFormRef" label-width="100px">
-          <el-form-item label="用户姓名" prop="name">
-            <el-input v-model="updateUserForm.name" @keyup.native.enter="updateUserConfirm"></el-input>
-          </el-form-item>
-          <el-form-item label="用户名" prop="username">
-            <el-input v-model="updateUserForm.username" :disabled="true"></el-input>
-          </el-form-item>
-          <el-form-item label="密码" prop="password">
-            <el-input v-model="updateUserForm.password" show-password :disabled="true"></el-input>
-          </el-form-item>
-        </el-form>
-        <!-- 按钮区域 -->
-        <span slot="footer" class="dialog-footer">
-          <el-button icon="el-icon-error" size="small" @click="showUpdateUserDialog = false">取 消</el-button>
-          <el-button type="primary" :loading="showUpdateUserConfirmLoading" icon="el-icon-success" size="small" @click="updateUserConfirm">确 定</el-button>
-        </span>
-      </el-dialog>
-
-      <!-- 授权用户对话框 -->
-      <el-dialog
-        title="授权角色"
-        :visible.sync="showAuthorizationRoleDialog"
-        :close-on-click-modal="false"
-        @close="authorizationRoleClose"
-        width="90%">
-        <!-- 内容主体区域 -->
-        <!-- 搜索角色区域 -->
-        <el-row :gutter="20">
-          <!-- 角色名/角色名称/角色编码查询 -->
-          <el-col :span="4">
-            <div>
-              <el-input placeholder="输入角色名称/编码" v-model="queryRoleInfo.search" @keyup.native.enter="selectSysRoleList" clearable @clear="selectSysRoleList">
-                <el-button slot="append" icon="el-icon-search" @click="selectSysRoleList"></el-button>
-              </el-input>
-            </div>
-          </el-col>
-          <!-- 日期查询选择 -->
-          <el-col :span="5.5">
-            <el-date-picker
-                v-model="roleCreateDateRange"
-                type="daterange"
-                align="left"
-                unlink-panels
-                range-separator="至"
-                start-placeholder="创建日期开始"
-                end-placeholder="创建日期结束"
-                :editable="false"
-                value-format="yyyy-MM-dd"
-                @change="searchSysRoleListByDate">
-              </el-date-picker>
-          </el-col>
-        </el-row>
-        <!-- 角色列表区域 -->
-        <el-table ref="multipleTable" :data="authorizationRoleList" style="width: 100%" border @selection-change="handleRoleSelectionChange" >
-          <el-table-column type="selection"></el-table-column>
-          <el-table-column type="index" label="#"></el-table-column>
-          <el-table-column prop="name" label="角色名称" align='center'></el-table-column>
-          <el-table-column prop="code" label="角色编码" align='center' show-overflow-tooltip></el-table-column>
-          <el-table-column label="是否授权" width="100" align='center'>
-            <template slot-scope="scope">
-              <el-tag v-if="scope.row.checked === 10" effect="dark" type="success">已授权</el-tag>
-              <el-tag v-else effect="dark" type="danger">未授权</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="createUserName" align='center' label="创建人"></el-table-column>
-          <el-table-column align='center' label="创建时间">
-            <template slot-scope="scope">
-              <i class="el-icon-time"></i>
-              <span style="margin-left: 10px">{{ scope.row.createTime }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="updateUserName" align='center' label="更新人"></el-table-column>
-          <el-table-column align='center' label="更新时间">
-            <template slot-scope="scope">
-              <i class="el-icon-time"></i>
-              <span style="margin-left: 10px">{{ scope.row.updateTime }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
-        <!-- 分页区域 -->
-        <el-pagination
-          @size-change="handleRoleListSizeChange"
-          @current-change="handleRoleListCurrentChange"
-          :current-page="queryRoleInfo.pageStart"
-          :page-sizes="[15, 30, 50, 100]"
-          :page-size="queryRoleInfo.pageSize"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="authorizationRoleTotal">
-        </el-pagination>
-        <!-- 按钮区域 -->
-        <span slot="footer" class="dialog-footer">
-          <el-button icon="el-icon-error" size="small" @click="showAuthorizationRoleDialog = false">取 消</el-button>
-          <el-button type="danger" :loading="showCancelAuthorizationRoleConfirmLoading" icon="el-icon-error" size="small" @click="cancelAuthorizationRoleConfirm">取消授权</el-button>
-          <el-button type="primary" :loading="showAuthorizationRoleConfirmLoading" icon="el-icon-success" size="small" @click="authorizationRoleConfirm">授 权</el-button>
-        </span>
-      </el-dialog>
-    </el-card>
-  </el-menu>
+      <!-- 按钮区域 -->
+      <span slot="footer" class="dialog-footer">
+        <el-button icon="el-icon-error" size="small" @click="showAuthorizationRoleDialog = false">取 消</el-button>
+        <el-button type="danger" :loading="showCancelAuthorizationRoleLoading" icon="el-icon-error" size="small" @click="cancelAuthorizationRole">取消授权</el-button>
+        <el-button type="primary" :loading="showAuthorizationRoleConfirmLoading" icon="el-icon-success" size="small" @click="authorizationRoleConfirm">授 权</el-button>
+      </span>
+    </el-dialog>
+  </el-card>
 </template>
 
 <script>
@@ -375,7 +372,7 @@ export default {
       // 取消授权的角色id列表
       cancelAuthorizationRoleIdList: [],
       // 取消授权按钮是否展示
-      showCancelAuthorizationRoleConfirmLoading: false
+      showCancelAuthorizationRoleLoading: false
     }
   },
   methods: {
@@ -541,7 +538,7 @@ export default {
         // 重新加载用户列表
         this.selectSysUserList()
       }).catch(() => {
-        this.$message.info('已取消删除')
+        // this.$message.info('已取消删除')
       })
     },
     /**
@@ -563,7 +560,7 @@ export default {
       // 隐藏确认按钮的loading
       this.showAuthorizationRoleConfirmLoading = false
       // 隐藏取消授权按钮的loading
-      this.showCancelAuthorizationRoleConfirmLoading = false
+      this.showCancelAuthorizationRoleLoading = false
     },
     /**
      * 授权角色确认
@@ -622,14 +619,9 @@ export default {
       this.cancelAuthorizationRoleIdList = []
 
       // 重置选择角色的授权标识
-      if (!this.roleHaveAuthorization) {
-        this.roleHaveAuthorization = true
-      }
-
+      this.roleHaveAuthorization = true
       // 重置选择角色的取消授权标识
-      if (!this.roleHaveCancelAuthorization) {
-        this.roleHaveCancelAuthorization = true
-      }
+      this.roleHaveCancelAuthorization = true
 
       // 选择的角色至少有一个未授权则允许授权
       rows.forEach(sysRole => {
@@ -682,7 +674,7 @@ export default {
     /**
      * 取消授权
      */
-    async cancelAuthorizationRoleConfirm () {
+    async cancelAuthorizationRole () {
       if (this.cancelAuthorizationRoleIdList.length === 0) {
         return this.$message.error('请选择要取消授权的角色')
       }
@@ -692,7 +684,7 @@ export default {
         return this.$message.error('角色已是未授权')
       }
 
-      this.showCancelAuthorizationRoleConfirmLoading = true
+      this.showCancelAuthorizationRoleLoading = true
 
       // 取消用户授权的角色
       var userAuthorizationInput = {
@@ -702,11 +694,11 @@ export default {
       const result = await this.$http.post('/sys-user/cancelAuthorizationRole', userAuthorizationInput)
       if (result.code !== 1000) {
         this.cancelAuthorizationRoleIdList = []
-        this.showCancelAuthorizationRoleConfirmLoading = false
+        this.showCancelAuthorizationRoleLoading = false
         return this.$message.error(result.msg)
       }
 
-      this.showCancelAuthorizationRoleConfirmLoading = false
+      this.showCancelAuthorizationRoleLoading = false
       this.cancelAuthorizationRoleIdList = []
       this.$message.success(result.msg)
 
