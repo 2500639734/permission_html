@@ -26,7 +26,10 @@ import {
   Dialog,
   MessageBox,
   Tag,
-  Tree
+  Tree,
+  Select,
+  Option,
+  Slider
 } from 'element-ui'
 
 Vue.use(Button)
@@ -54,5 +57,8 @@ Vue.use(DatePicker)
 Vue.use(Dialog)
 Vue.use(Tag)
 Vue.use(Tree)
+Vue.use(Select)
+Vue.use(Option)
+Vue.use(Slider)
 Vue.prototype.$message = Message
 Vue.prototype.$confirm = MessageBox.confirm

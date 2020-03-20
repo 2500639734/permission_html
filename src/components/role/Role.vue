@@ -185,7 +185,7 @@
         </el-col>
       </el-row>
       <!-- 权限列表区域 -->
-      <el-table ref="multipleTable" :data="authorizationAclList" style="width: 100%" border @selection-change="handleAclSelectionChange">
+      <el-table ref="multipleTable" :data="authorizationAclList" style="width: 100%" border @selection-change="handleAclSelectionChange" height="400px">
         <el-table-column type="selection"></el-table-column>
         <el-table-column type="index" label="#"></el-table-column>
         <el-table-column prop="name" label="权限名称" align='center'></el-table-column>
@@ -225,7 +225,7 @@
         @size-change="handleAclSizeChange"
         @current-change="handleAclCurrentChange"
         :current-page="queryAclInfo.pageStart"
-        :page-sizes="[10, 30, 50, 100]"
+        :page-sizes="[15, 30, 50, 100]"
         :page-size="queryAclInfo.pageSize"
         layout="total, sizes, prev, pager, next, jumper"
         :total="authorizationAclListTotal">
@@ -296,7 +296,7 @@ export default {
           },
           {
             min: 2,
-            max: 5,
+            max: 8,
             message: '角色名称的长度在2~8个字符之间',
             trigger: 'blur'
           },
@@ -368,7 +368,7 @@ export default {
         // 当前页
         pageStart: 1,
         // 每页记录数
-        pageSize: 10,
+        pageSize: 15,
         // 查询条件
         search: '',
         // 创建日期开始
@@ -565,7 +565,7 @@ export default {
       this.aAuthorizationMenuRoleId = roleId
 
       // 加载树形菜单
-      const result = await this.$http.post('/sys-menu/selectMenuList/' + roleId)
+      const result = await this.$http.post('/sys-menu/selectMenuTreeByRoleId/' + roleId)
       if (result.code !== 1000) {
         return this.$message.error(result.msg)
       }
@@ -614,9 +614,6 @@ export default {
         ...this.$refs.sysMenuTreeRef.getCheckedKeys(),
         ...this.$refs.sysMenuTreeRef.getHalfCheckedKeys()
       ]
-      if (menuTreeIds.length === 0) {
-        return this.$message.error('请选择要分配权限的菜单')
-      }
 
       this.showAuthorizationMenuSaveLoading = true
 
@@ -690,7 +687,13 @@ export default {
      * 角色列表授权窗口关闭
      */
     authorizationAclClose () {
+      // 隐藏对话框并取消loading
+      this.showAuthorizationAclDialog = false
+      this.showAuthorizationAclConfirmLoading = false
+      this.showCancelAuthorizationAclLoading = false
 
+      // 清空权限数据
+      this.authorizationAclIdList = []
     },
     /**
      * 授权权限列表选项切换事件

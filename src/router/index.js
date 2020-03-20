@@ -5,6 +5,7 @@ import Home from '../components/Home.vue'
 import Index from '../components/Index.vue'
 import User from '../components/user/User.vue'
 import Role from '../components/role/Role.vue'
+import Menu from '../components/menu/Menu.vue'
 import CookieUtils from '../util/cookieUtils.js'
 
 /**
@@ -22,7 +23,7 @@ Vue.prototype.$CookieUtils = CookieUtils
 const routes = [
   { path: '/', redirect: '/home' },
   { path: '/login', component: Login },
-  { path: '/home', component: Home, redirect: '/index', children: [{ path: '/index', component: Index }, { path: '/acl/user', component: User }, { path: '/acl/role', component: Role }] },
+  { path: '/home', component: Home, redirect: '/index', children: [{ path: '/index', component: Index }, { path: '/permission/user', component: User }, { path: '/permission/role', component: Role }, { path: '/permission/menu', component: Menu }, { path: '/system/db', component: Menu }] },
   { path: '*', redirect: '/home' }
 ]
 

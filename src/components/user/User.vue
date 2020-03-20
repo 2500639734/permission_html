@@ -38,7 +38,7 @@
     <el-table :data="userList" style="width: 100%" border>
       <el-table-column type="index" align='center' label="#"></el-table-column>
       <el-table-column prop="name" align='center' label="姓名"></el-table-column>
-      <el-table-column prop="code" align='center' label="编码" show-overflow-tooltip></el-table-column>
+      <el-table-column prop="code" align='center' label="编码"></el-table-column>
       <el-table-column prop="username" align='center' label="用户名"></el-table-column>
       <el-table-column prop="createUserName" align='center' label="创建人"></el-table-column>
       <el-table-column align='center' label="创建时间">
