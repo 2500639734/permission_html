@@ -80,9 +80,9 @@
             <el-button type="primary" size="mini" icon="el-icon-add-location" @click="addPeersMenu(scope.row.id)"></el-button>
           </el-tooltip>
           <!-- 修改菜单按钮 -->
-          <el-button type="primary" icon="el-icon-edit" size="mini" ></el-button>
+          <el-button type="primary" icon="el-icon-edit" size="mini" @click="editMenu(scope.row)"></el-button>
           <!-- 删除菜单按钮 -->
-          <el-button type="danger" icon="el-icon-delete" size="mini" ></el-button>
+          <el-button type="danger" icon="el-icon-delete" size="mini" @click="deleteMenu(scope.row.id)"></el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -129,6 +129,41 @@
       <span slot="footer" class="dialog-footer">
         <el-button icon="el-icon-error" size="small" @click="showAddMenuDialog=false">取 消</el-button>
         <el-button type="primary" icon="el-icon-success" size="small" :loading="showAddMenuConfirmLoading" @click="addMenuConfirm">保 存</el-button>
+      </span>
+    </el-dialog>
+
+    <!-- 修改菜单对话框 -->
+    <el-dialog
+      title="修改菜单"
+      :visible.sync="showEditMenuDialog"
+      :close-on-click-modal="false"
+      @close="editMenuClose"
+      width="20%">
+      <!-- 内容主体区域 -->
+      <el-form label-position="left" :model="editMenuForm" :rules="editMenuFormRules" ref="editMenuFormRef" label-width="100px">
+        <el-form-item label="菜单名称" prop="name">
+          <el-input v-model="editMenuForm.name"></el-input>
+        </el-form-item>
+        <el-form-item label="路由地址" prop="path">
+          <el-input v-model="editMenuForm.path"></el-input>
+        </el-form-item>
+        <el-form-item label="图标" prop="icon">
+          <el-input v-model="editMenuForm.icon"></el-input>
+        </el-form-item>
+        <el-form-item label="类型" prop="type">
+          <el-select v-model="editMenuForm.type" placeholder="请选择类型" clearable style="width:100%">
+            <el-option label="菜单" :value="10"></el-option>
+            <el-option label="按钮" :value="20"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="顺序" prop="sort">
+          <el-slider v-model="editMenuForm.sort" show-input :min="1" :max="200"></el-slider>
+        </el-form-item>
+      </el-form>
+      <!-- 按钮区域 -->
+      <span slot="footer" class="dialog-footer">
+        <el-button icon="el-icon-error" size="small" @click="showEditMenuDialog=false">取 消</el-button>
+        <el-button type="primary" icon="el-icon-success" size="small" :loading="showEditMenuConfirmLoading" @click="editMenuConfirm">保 存</el-button>
       </span>
     </el-dialog>
   </el-card>
@@ -243,7 +278,81 @@ export default {
         ]
       },
       // 添加菜单确认按钮的loading
-      showAddMenuConfirmLoading: false
+      showAddMenuConfirmLoading: false,
+      // 修改菜单表单
+      editMenuForm: {
+        id: null,
+        pid: null,
+        name: null,
+        path: null,
+        icon: null,
+        type: null,
+        sort: null
+      },
+      // 添加菜单表单校验规则
+      editMenuFormRules: {
+        name: [
+          {
+            required: true,
+            message: '请输入菜单名称',
+            trigger: 'blur'
+          },
+          {
+            min: 2,
+            max: 5,
+            message: '菜单名称的长度在2~5个字符之间',
+            trigger: 'blur'
+          },
+          {
+            validator: checkName,
+            trigger: 'blur'
+          }
+        ],
+        path: [
+          {
+            required: true,
+            message: '请输入路由地址',
+            trigger: 'blur'
+          },
+          {
+            min: 2,
+            max: 256,
+            message: '路由地址的长度在2~256个字符之间',
+            trigger: 'blur'
+          }
+        ],
+        icon: [
+          {
+            required: true,
+            message: '请输入图标',
+            trigger: 'blur'
+          },
+          {
+            min: 2,
+            max: 128,
+            message: '图标的长度在2~128个字符之间',
+            trigger: 'blur'
+          }
+        ],
+        type: [
+          {
+            required: true,
+            message: '请选择菜单类型',
+            trigger: 'change'
+          }
+        ],
+        sort: [
+          {
+            required: true,
+            message: '请输入顺序',
+            trigger: 'change'
+          }
+        ]
+      },
+      // 修改菜单对话框是否打开
+      showEditMenuDialog: false,
+      // 修改菜单确认按钮loading
+      showEditMenuConfirmLoading: false
     }
   },
   methods: {
@@ -336,6 +445,92 @@ export default {
 
         // 重新加载菜单列表
         this.selectSysMenuTreeList()
+      })
+    },
+    /**
+     * 修改菜单打开事件
+     */
+    editMenu (row) {
+      this.editMenuForm.id = row.id
+      this.editMenuForm.pid = row.pid
+      this.editMenuForm.name = row.name
+      this.editMenuForm.path = row.path
+      this.editMenuForm.icon = row.icon
+      this.editMenuForm.type = row.type
+      this.editMenuForm.sort = row.sort
+
+      // 打开修改菜单对话框
+      this.showEditMenuDialog = true
+    },
+    /**
+     * 修改菜单对话框关闭事件
+     */
+    editMenuClose () {
+      // 清空菜单填写及校验
+      this.$refs.editMenuFormRef.resetFields()
+      // 清空loading
+      this.showEditMenuConfirmLoading = false
+      // 关闭修改菜单对话框
+      this.showEditMenuDialog = false
+
+      // 清空数据项
+      this.editMenuForm.id = null
+      this.editMenuForm.pid = null
+      this.editMenuForm.name = null
+      this.editMenuForm.path = null
+      this.editMenuForm.icon = null
+      this.editMenuForm.type = null
+      this.editMenuForm.sort = null
+    },
+    /**
+     * 修改菜单确认按钮
+     */
+    editMenuConfirm () {
+      // 修改前预校验
+      this.$refs.editMenuFormRef.validate(async valid => {
+        // 验证未通过则不添加
+        if (!valid) return false
+
+        // 按钮显示加载中
+        this.showEditMenuConfirmLoading = true
+
+        // 验证通过添加菜单
+        const result = await this.$http.post('/sys-menu/updateMenu', this.editMenuForm)
+        if (result.code !== 1000) {
+          this.showEditMenuConfirmLoading = false
+          return this.$message.error(result.msg)
+        }
+
+        // 消息提示并且关闭对话框
+        this.$message.success(result.msg)
+        this.showEditMenuConfirmLoading = false
+        this.showEditMenuDialog = false
+
+        // 重新加载菜单列表
+        this.selectSysMenuTreeList()
+      })
+    },
+    /**
+     * 删除菜单
+     */
+    deleteMenu (id) {
+      this.$confirm('此操作将永久删除该菜单及子菜单, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        closeOnClickModal: false,
+        type: 'warning'
+      }).then(async () => {
+        // 删除菜单
+        const result = await this.$http.post('/sys-menu/deleteMenu/' + id)
+        if (result.code !== 1000) {
+          return this.$message.error(result.msg)
+        }
+
+        this.$message.success(result.msg)
+        // 重新加载菜单列表
+        this.selectSysMenuTreeList()
+      }).catch(() => {
+        // this.$message.info('已取消删除')
       })
     }
   }
